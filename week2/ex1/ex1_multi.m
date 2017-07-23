@@ -105,6 +105,8 @@ fprintf('\n');
 % Recall that the first column of X is all-ones. Thus, it does
 % not need to be normalized.
 ex_ = [1650 3];
+
+%% VERY IMPORTANT! If you normalized the training examples, you must also nomalize the prediction examples
 exNorm_ = ex_ - mu;
 exNorm_ = exNorm_ ./ sigma;
 ex_ = [1 exNorm_];
