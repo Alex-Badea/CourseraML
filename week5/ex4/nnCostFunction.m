@@ -1,6 +1,5 @@
 function [J grad] = nnCostFunction(nn_params, ...
                                    input_layer_size, ...
-                                   hidden_layer_size, ...
                                    num_labels, ...
                                    X, y, lambda)
 %NNCOSTFUNCTION Implements the neural network cost function for a two layer
@@ -16,19 +15,14 @@ function [J grad] = nnCostFunction(nn_params, ...
 
 % Reshape nn_params back into the parameters Theta1 and Theta2, the weight matrices
 % for our 2 layer neural network
-Theta1 = reshape(nn_params(1:hidden_layer_size * (input_layer_size + 1)), ...
-                 hidden_layer_size, (input_layer_size + 1));
-
-Theta2 = reshape(nn_params((1 + (hidden_layer_size * (input_layer_size + 1))):end), ...
-                 num_labels, (hidden_layer_size + 1));
+Theta = reshape(nn_params, num_labels, input_layer_size + 1);
 
 % Setup some useful variables
 m = size(X, 1);
          
 % You need to return the following variables correctly 
 J = 0;
-Theta1_grad = zeros(size(Theta1));
-Theta2_grad = zeros(size(Theta2));
+Theta_grad = zeros(size(Theta));
 
 % ====================== YOUR CODE HERE ======================
 % Instructions: You should complete the code by working through the
@@ -62,58 +56,46 @@ Theta2_grad = zeros(size(Theta2));
 %               and Theta2_grad from Part 2.
 %
 
-    function [z2_, a2_, z3_, a3_] = fwProp(a1_, Theta1, Theta2)
+    function [z2_, a2_] = fwProp(a1_, Theta)
         %Catenating bias value for layer 1 and plugging it in the sigmoid
         a1Bias_ = [1; a1_];
-        z2_ = Theta1 * a1Bias_;
+        z2_ = Theta * a1Bias_;
         a2_ = sigmoid(z2_);
-        %Catenating bias value for layer 1 and plugging it in the sigmoid
-        a2Bias_ = [1; a2_];
-        z3_ = Theta2 * a2Bias_;
-        a3_ = sigmoid(z3_);
     end
 
 for i = 1:m
-    [~, ~, ~, hTheta_] = fwProp(X(i, :)', Theta1, Theta2);    
+    [~, hTheta_] = fwProp(X(i, :)', Theta);    
     J = J + (-full(ind2vec(y(i), num_labels))' * log(hTheta_) ...
         - (1 - full(ind2vec(y(i), num_labels))') * log(1 - hTheta_));
 end
 J = J/m ;
 
-Theta1NoBias = Theta1(:, 2:end);
-theta1NoBiasUnrolled_ = Theta1NoBias(:);
-Theta2NoBias = Theta2(:, 2:end);
-theta2NoBiasUnrolled_ = Theta2NoBias(:);
+ThetaNoBias = Theta(:, 2:end);
+thetaNoBiasUnrolled_ = ThetaNoBias(:);
 
 J = J + (lambda/(2*m)) ...
-    * (sum(theta1NoBiasUnrolled_ .^ 2) + sum(theta2NoBiasUnrolled_ .^ 2));
+    * (sum(thetaNoBiasUnrolled_ .^ 2));
 
-Delta1 = zeros(size(Theta1));
-Delta2 = zeros(size(Theta2));
+Delta = zeros(size(Theta));
 for i = 1:m
     a1_ = X(i, :)'; % (400 x 1)
-    [z2_, a2_, ~, a3_] = fwProp(a1_, Theta1, Theta2);
-    d3_ = a3_ - full(ind2vec(y(i), num_labels)); % (10 x 1)
-    d2Bias_ = (Theta2' * d3_) .* [0; sigmoidGradient(z2_)]; % (26 x 1)
-    d2_ = d2Bias_(2:end); % (25 x 1)
+    [~, a2_] = fwProp(a1_, Theta);
+    d2_ = a2_ - full(ind2vec(y(i), num_labels)); % (10 x 1)
     
-    Delta1 = Delta1 + d2_ * [1; a1_]'; % (25 x 401)
-    Delta2 = Delta2 + d3_ * [1; a2_]'; % (10 x 26)
+    Delta = Delta + d2_ * [1; a1_]'; % (10 x 401)
 end
 
-Theta1_grad = Delta1./m;
-Theta2_grad = Delta2./m;
+Theta_grad = Delta./m;
 
 %Adding regularization
-Theta1_grad(:, 2:end) = Theta1_grad(:, 2:end) + (lambda/m) * Theta1(:, 2:end);
-Theta2_grad(:, 2:end) = Theta2_grad(:, 2:end) + (lambda/m) * Theta2(:, 2:end);
+Theta_grad(:, 2:end) = Theta_grad(:, 2:end) + (lambda/m) * Theta(:, 2:end);
 
 % -------------------------------------------------------------
 
 % =========================================================================
 
 % Unroll gradients
-grad = [Theta1_grad(:) ; Theta2_grad(:)];
+grad = Theta_grad(:);
 
 
 end
